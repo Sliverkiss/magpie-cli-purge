@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CLI Purge</title>
+<link rel="stylesheet" href="style.css">
+<script src="_magpie/bridge.js"></script>
+<script src="i18n.js"></script>
+<script src="persona.js"></script>
+<script src="groups.js"></script>
+<script src="migrate.js"></script>
+<script src="app.js" defer></script>
+</head>
+<body>
+<!-- 全局一套策略:总闸 + 模式在破限卡片上;
+     人设在下面的 Library 里选(共享资源,导入一次);
+     全局开关,没有按模型分组。 -->
+
+<main class="view">
+  <!-- options.get 失败时的只读报错行(app.js 画) -->
+  <p class="muted" id="load-error" role="alert" hidden></p>
+
+  <section class="sect">
+    <div class="row-head">
+      <span class="label" id="base-head">Basics</span>
+      <span class="note" id="base-note"></span>
+    </div>
+    <div class="list prefs">
+      <div class="row pref">
+        <div class="who">
+          <div class="name" id="enabled-name">CLI Purge</div>
+          <div class="sub" id="enabled-sub"></div>
+        </div>
+        <div class="val" id="switch-segs"></div>
+      </div>
+      <!-- 全局模式:人设在下面的 Library 卡片里选 -->
+      <div id="policy"></div>
+      <!-- 接管条件:多少工具才算真对话、query/环境缺了跳不跳(app.js 画) -->
+      <div id="gate"></div>
+    </div>
+  </section>
+
+  <!-- ---- Library:共享资源(在 Agents 上面) ---- -->
+  <section class="sect">
+    <div class="row-head">
+      <span class="label" id="library-head">Library</span>
+      <span class="note" id="library-note"></span>
+    </div>
+
+    <div class="list lib-list lib-sets" id="personas">
+      <div class="lib-cardhead">
+        <b id="personas-head">Personas</b>
+        <span class="grow"></span>
+        <span class="note" id="personas-note"></span>
+      </div>
+      <div id="persona-rows"></div>
+      <div class="lib-acts lib-setadd">
+        <button type="button" class="text action" id="persona-import">+ Import a file…</button>
+      </div>
+    </div>
+    <input type="file" id="persona-file" accept=".md,.markdown,.txt,text/plain,text/markdown" hidden>
+    <p class="flash muted" id="persona-msg" role="status" hidden></p>
+  </section>
+
+  <!-- agent 白名单:名单里的 agent 会被改写,其余原样放行 -->
+  <section class="sect">
+    <div class="row-head">
+      <span class="label" id="agents-head">Agents</span>
+      <span class="note" id="agents-note"></span>
+    </div>
+    <div class="list lib-list" id="agents"></div>
+  </section>
+
+  <footer class="foot">made by sliverkiss</footer>
+  <p id="saved" role="status" hidden>Saved.</p>
+  <div class="lib-savebar" id="savebar" hidden>
+    <span class="note" id="savebar-note"></span>
+    <span class="grow"></span>
+    <button type="button" class="text quiet" id="savebar-discard"></button>
+    <button type="button" class="text primary" id="savebar-save"></button>
+  </div>
+</main>
+</body>
+</html>

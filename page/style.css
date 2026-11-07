@@ -1,0 +1,338 @@
+/* magpie 自家的设计语言,从宿主 UI 复刻(数值照抄 magpie 的 CSS):
+     - 底色 --bg、白卡 --card、hairline --line,卡片 12px 圆角
+     - 小节标题 .row-head + .label(11px 大写字距 .05em),标题下 8px 是卡片
+     - 卡片与卡片之间 20px(用户要求拉开),小节与小节之间 20px
+     - 控件一套:
+         .segs   互斥选项(pill 轨 + 滑块,总闸 On/Off、模式)
+         .lib-switch  立即生效的布尔项(替换词)
+         .text / .text.action / .text.primary  文字 / 描边 / 实底主按钮
+         input / select  6px 圆角、hairline、focus 是 accent 描边
+   主题变量讲宿主的语言(--magpie-* 由 bridge 注入),没有时用下面的缺省。 */
+
+:root {
+  /* 桥只注入 15 个基础 token(pluginpages.js:35),二级色从基础色 color-mix
+     派生:真主题换了底色二级色跟着走,不再钉死一套固定值。 */
+  --bg: var(--magpie-bg, #f4f4f6);
+  --card: var(--magpie-card, #ffffff);
+  --card-2: color-mix(in srgb, var(--card) 60%, var(--bg));
+  --pill: color-mix(in srgb, var(--fg) 6%, var(--card));
+  --pill-hover: color-mix(in srgb, var(--fg) 9%, var(--card));
+  --seg-track: var(--magpie-seg-track, #e6e6eb);
+  --seg-thumb: var(--magpie-seg-thumb, var(--card));
+  --seg-edge: var(--magpie-seg-edge, 0 1px 2px rgba(0, 0, 0, .14), 0 0 0 .5px rgba(0, 0, 0, .08));
+  --line: var(--magpie-line, #e3e3e8);
+  --line-2: color-mix(in srgb, var(--line) 70%, var(--card));
+  --fg: var(--magpie-fg, #1c1c21);
+  --fg-2: var(--magpie-fg-2, #4b4b53);
+  --muted: var(--magpie-muted, #85858d);
+  --faint: var(--magpie-faint, #b9b9c2);
+  --ctl-fg: var(--magpie-ctl-fg, #63636b);
+  --accent: var(--magpie-accent, #4f46e5);
+  --accent-soft: var(--magpie-accent-soft, #eeedfd);
+  --accent-fg: var(--magpie-accent-fg, #ffffff);
+  --green: var(--magpie-green, #189a58);
+  --green-soft: var(--magpie-green-soft, #e4f6ec);
+  --red: var(--magpie-red, #d64545);
+  --red-soft: var(--magpie-red-soft, #fbe9e9);
+  --amber: var(--magpie-amber, #b45309);
+  --amber-soft: var(--magpie-amber-soft, #fbf0df);
+  --pop-bg: color-mix(in srgb, var(--card) 94%, transparent);
+  --shadow: var(--magpie-pop-shadow, 0 16px 44px rgba(20, 22, 30, .16), 0 2px 8px rgba(20, 22, 30, .06), 0 0 0 .5px rgba(20, 22, 30, .1));
+  --ease: cubic-bezier(.2, .8, .2, 1);
+  --font: var(--magpie-font, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif);
+  --code: var(--magpie-code, ui-monospace, "SF Mono", Menlo, Consolas, monospace);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: var(--magpie-bg, #1a1a1e);
+    --card: var(--magpie-card, #232327);
+    --card-2: color-mix(in srgb, var(--card) 60%, var(--bg));
+    --pill: color-mix(in srgb, var(--fg) 6%, var(--card));
+    --pill-hover: color-mix(in srgb, var(--fg) 9%, var(--card));
+    --seg-track: var(--magpie-seg-track, rgba(255, 255, 255, .035));
+    --seg-thumb: var(--magpie-seg-thumb, rgba(255, 255, 255, .15));
+    --seg-edge: var(--magpie-seg-edge, inset 0 .5px 0 rgba(255, 255, 255, .08), 0 1px 2px rgba(0, 0, 0, .3));
+    --line: var(--magpie-line, #333339);
+    --line-2: color-mix(in srgb, var(--line) 70%, var(--card));
+    --fg: var(--magpie-fg, #ededf1);
+    --fg-2: var(--magpie-fg-2, #b9b9c1);
+    --muted: var(--magpie-muted, #8b8b94);
+    --faint: var(--magpie-faint, #56565f);
+    --ctl-fg: var(--magpie-ctl-fg, #a1a1aa);
+    --accent: var(--magpie-accent, #a5b4fc);
+    --accent-soft: var(--magpie-accent-soft, #2b2c47);
+    --accent-fg: var(--magpie-accent-fg, #14142a);
+    --green: var(--magpie-green, #6fd99b);
+    --green-soft: var(--magpie-green-soft, #1e3a2b);
+    --red: var(--magpie-red, #f28b82);
+    --red-soft: var(--magpie-red-soft, #45272a);
+    --amber: var(--magpie-amber, #f2b544);
+    --amber-soft: var(--magpie-amber-soft, #3f3220);
+    --pop-bg: color-mix(in srgb, var(--card) 96%, transparent);
+    --shadow: var(--magpie-pop-shadow, 0 16px 44px rgba(0, 0, 0, .55), 0 2px 8px rgba(0, 0, 0, .3), 0 0 0 .5px rgba(255, 255, 255, .1));
+  }
+}
+:root[data-theme="dark"] {
+  --bg: var(--magpie-bg, #1a1a1e);
+  --card: var(--magpie-card, #232327);
+  --card-2: color-mix(in srgb, var(--card) 60%, var(--bg));
+  --pill: color-mix(in srgb, var(--fg) 6%, var(--card));
+  --pill-hover: color-mix(in srgb, var(--fg) 9%, var(--card));
+  --seg-track: var(--magpie-seg-track, rgba(255, 255, 255, .035));
+  --seg-thumb: var(--magpie-seg-thumb, rgba(255, 255, 255, .15));
+  --seg-edge: var(--magpie-seg-edge, inset 0 .5px 0 rgba(255, 255, 255, .08), 0 1px 2px rgba(0, 0, 0, .3));
+  --line: var(--magpie-line, #333339);
+  --line-2: color-mix(in srgb, var(--line) 70%, var(--card));
+  --fg: var(--magpie-fg, #ededf1);
+  --fg-2: var(--magpie-fg-2, #b9b9c1);
+  --muted: var(--magpie-muted, #8b8b94);
+  --faint: var(--magpie-faint, #56565f);
+  --ctl-fg: var(--magpie-ctl-fg, #a1a1aa);
+  --accent: var(--magpie-accent, #a5b4fc);
+  --accent-soft: var(--magpie-accent-soft, #2b2c47);
+  --accent-fg: var(--magpie-accent-fg, #14142a);
+  --green: var(--magpie-green, #6fd99b);
+  --green-soft: var(--magpie-green-soft, #1e3a2b);
+  --red: var(--magpie-red, #f28b82);
+  --red-soft: var(--magpie-red-soft, #45272a);
+  --amber: var(--magpie-amber, #f2b544);
+  --amber-soft: var(--magpie-amber-soft, #3f3220);
+  --pop-bg: color-mix(in srgb, var(--card) 96%, transparent);
+  --shadow: var(--magpie-pop-shadow, 0 16px 44px rgba(0, 0, 0, .55), 0 2px 8px rgba(0, 0, 0, .3), 0 0 0 .5px rgba(255, 255, 255, .1));
+}
+
+* { box-sizing: border-box; }
+/* 滚动归页面自己:宿主把 iframe 拉成内容全高、在它自己的 .view 里滚,
+   那条滚动条是宿主画的,页面改不了它的颜色。html/body 锁一屏高、
+   内容自己滚,滚动条就是上面那条细的了。 */
+html { height: 100%; }
+body {
+  /* padding 显式归零:桥的 :where(body) { padding: 20px 24px }(pagebridge.js:166)
+     虽无权重,但页面不写就会吃它的内边距;内边距收在 .view 里。 */
+  margin: 0; padding: 0; height: 100vh; overflow-y: auto; overflow-x: hidden;
+  background: var(--bg); color: var(--fg);
+  font: 13px/1.45 var(--font); -webkit-font-smoothing: antialiased;
+}
+@keyframes view-in { from { opacity: 0; } }
+.view {
+  display: flex; flex-direction: column; gap: 20px;
+  padding: 10px 12px 8px; max-width: 860px; margin: 0 auto;
+  animation: view-in .18s var(--ease);
+}
+@media (prefers-reduced-motion: reduce) { .view { animation: none; } }
+.sect { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+/* 小标题与卡片之间收紧,卡片与卡片之间保持 20px 呼吸感 */
+.sect > .row-head { margin-bottom: -12px; }
+.grow { flex: 1; }
+
+/* ---- 小节标题(宿主 .row-head / .label) ---- */
+.row-head { display: flex; align-items: center; gap: 8px; height: 26px; }
+.row-head .label { font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.row-head .note { min-width: 0; font-size: 11px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---- 卡片与行(宿主 .list / .row 原样) ---- */
+.list { background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; flex: none; }
+.row { display: flex; align-items: center; gap: 9px; min-height: 40px; padding: 5px 9px 5px 11px; }
+.row.pref { gap: 14px; min-height: 48px; padding: 12px 12px 12px 14px; }
+.row + .row { border-top: 1px solid var(--line-2); }
+.row .who { min-width: 0; flex: 1 1 auto; }
+.row .name { font-weight: 500; letter-spacing: -.005em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.row .sub { margin-top: 2px; font-size: 11.5px; line-height: 1.4; color: var(--muted); white-space: normal; overflow-wrap: anywhere; }
+/* 设置行的说明比库里行的读得清一档(宿主 app.css:3758 .row.pref .sub) */
+.row.pref .sub { color: var(--fg-2); }
+.row .val { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; min-width: 0; flex: none; }
+.foot { margin: 4px 0 6px; text-align: center; font-size: 11px; color: var(--faint); }
+
+/* ---- 按钮(宿主 app.css .text 三种,逐字) ---- */
+button.text {
+  padding: 3px 7px; border: 0; border-radius: 6px;
+  background: none; font: inherit; font-size: 12px; color: var(--ctl-fg);
+  cursor: default; white-space: nowrap;
+  transition: background .12s, color .12s;
+}
+button.text:hover { color: var(--fg); background: var(--pill); }
+button.text:active { transform: scale(.96); }
+button.text:disabled { color: var(--faint); opacity: .55; cursor: default; background: none; transform: none; }
+button.text.action {
+  height: 27px; padding: 0 10px; border: 1px solid var(--line); background: var(--card);
+  color: var(--fg-2); box-shadow: 0 1px 1px rgba(0, 0, 0, .04);
+  display: inline-flex; align-items: center; justify-content: center;
+}
+button.text.action:hover { border-color: var(--muted); background: var(--card-2); color: var(--fg); }
+button.text.quiet { color: var(--muted); }
+button.text.quiet:hover { color: var(--fg); }
+/* 保存条的「保存」:宿主 .text.primary 实底主按钮(app.css:2153) */
+button.text.primary { color: var(--accent-fg); background: var(--accent); font-weight: 500; }
+button.text.primary:hover { color: var(--accent-fg); background: var(--accent); filter: brightness(1.08); }
+
+/* ---- 分段控件(宿主 app.css .segs/.opt/.thumb 逐字) ---- */
+.segs { position: relative; display: inline-flex; padding: 2px; border-radius: 7px; background: var(--pill); align-self: flex-start; }
+.opt {
+  position: relative; z-index: 1; white-space: nowrap; height: 22px; padding: 0 10px;
+  border: 0; border-radius: 5px; background: none; font: inherit; font-size: 12px; color: var(--muted);
+  cursor: default; transition: color .18s var(--ease), transform .14s var(--ease);
+}
+.opt.on { color: var(--fg); }
+.opt:hover:not(.on) { color: var(--fg-2); }
+.opt:active { transform: scale(.96); }
+.segs .thumb {
+  position: absolute; top: 2px; bottom: 2px; left: 0; width: 0; border-radius: 5px;
+  background: var(--card); box-shadow: 0 1px 2px rgba(0, 0, 0, .12), 0 0 0 .5px rgba(0, 0, 0, .06);
+  transition: opacity .15s; pointer-events: none;
+}
+
+/* ---- 开关(宿主 .lib-switch 原样,32×19;光标 default,宿主 button 全局
+   就是 default —— app.css:161,library.css:251 没有另给 pointer) ---- */
+.lib-switch {
+  flex: none; position: relative; width: 32px; height: 19px; padding: 0; border: 0;
+  border-radius: 10px; background: var(--line); cursor: default;
+  transition: background .2s var(--ease);
+}
+.lib-switch i {
+  position: absolute; top: 2px; left: 2px; width: 15px; height: 15px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .25);
+  transition: transform .22s var(--ease);
+}
+.lib-switch.on { background: var(--fg); }
+.lib-switch.on i { transform: translateX(13px); background: var(--card); }
+:root[data-theme="dark"] .lib-switch.on i { background: var(--bg); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .lib-switch.on i { background: var(--bg); } }
+
+/* ---- 输入框 / 下拉(一套:6px 圆角、hairline、focus 是 accent 描边) ---- */
+.lib-setname, .rename-in, .word-input {
+  height: 26px; padding: 0 8px; border: 1px solid var(--line); border-radius: 6px;
+  background: var(--card); color: var(--fg); font: inherit; font-size: 12.5px; outline: none;
+  transition: border-color .12s, box-shadow .12s;
+}
+/* focus 照宿主 input.lib-setname:focus(library.css:273) */
+.lib-setname:focus, .rename-in:focus, .word-input:focus {
+  border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.lib-setname { max-width: 280px; }
+.rename-in { max-width: 240px; flex: 1 1 120px; min-width: 60px; }
+
+/* ---- Library 卡片(宿主「共享指令」的 .lib-* 原样) ---- */
+.lib-cardhead { display: flex; align-items: center; gap: 9px; padding: 9px 12px 8px; }
+.lib-cardhead b { font-weight: 600; font-size: 13px; }
+.lib-cardhead .note { font-size: 11px; color: var(--faint); }
+.lib-acts { display: flex; gap: 6px; flex-wrap: wrap; }
+.lib-setadd { padding: 8px 10px 10px; }
+.lib-sets .lib-detail + .row, .lib-sets .lib-detail + .lib-setadd, .lib-sets .row + .lib-setadd, .lib-sets .lib-cardhead + #persona-rows .row:first-child, .lib-sets .lib-cardhead + #repl-rows .row:first-child { border-top: 1px solid var(--line-2); }
+.lib-none { padding: 12px; font-size: 12px; color: var(--muted); }
+
+/* ---- 库行(宿主资源库指令页 .lib-row / .lib-detail) ---- */
+.lib-list .row { min-height: 50px; padding: 7px 10px 7px 12px; gap: 11px; }
+.lib-list .row { animation: lib-in .18s var(--ease); }
+
+/* 图标(宿主 app.css .ic 逐字;指纹 Agents 行用) */
+.ic { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 16px; height: 16px; }
+.ic img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.ic .mask { width: 100%; height: 100%; background: currentColor; -webkit-mask: var(--i) center / contain no-repeat; mask: var(--i) center / contain no-repeat; }
+/* codex/claude 这类实心色块 logo:宿主让它们画到 82%,视觉大小才与线性 logo 一致 */
+.ic[data-icon="codex"] > *, .ic[data-icon="claude"] > * { width: 82%; height: 82%; }
+.ic.generic { color: var(--muted); }
+/* 指纹行的图标比默认 16px 稍大(资源库 RTK 行的观感) */
+#agents .ic { width: 20px; height: 20px; }
+.lib-row.click { cursor: default; transition: background .14s var(--ease); }
+.lib-row.click:hover { background: var(--card-2); }
+.lib-row.open { background: var(--card-2); }
+.lib-row .who { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.lib-row .name.mono { font: 500 12.5px var(--code); }
+.lib-row .sub.mono { font: 11px var(--code); color: var(--muted); }
+.lib-row .chev { flex: none; color: var(--faint); transition: transform .2s var(--ease); display: grid; place-items: center; }
+.lib-row .chev svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.lib-row.open .chev { transform: rotate(90deg); }
+/* 展开区照宿主 .lib-detail(library.css:276):左缩进 50px、无上边线,
+   背景色变差自然分界;入场 content-in(app.css:4107) */
+.lib-detail { display: flex; flex-direction: column; gap: 8px; padding: 4px 14px 14px 50px; background: var(--card-2); border-top: 0; }
+.lib-detail { animation: content-in .2s var(--ease); }
+@keyframes content-in { from { opacity: .5; transform: translateY(2px); } }
+@keyframes lib-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .lib-detail { animation: none; } }
+.lib-detail.adding { width: 100%; }
+.lib-detail.adding .lib-setname { max-width: none; width: 100%; }
+/* from → to 一行:两个输入 + 箭头 */
+.kf { display: grid; grid-template-columns: minmax(0, 1fr) 14px minmax(0, 1fr); gap: 6px; align-items: center; }
+.kf .word-input { width: 100%; min-width: 0; }
+.lib-detail .kf + .lib-acts { margin-top: 2px; }
+
+/* ---- 打勾(纯对勾,无圆形):人设选中哪条,勾在行右 ---- */
+.lib-check { flex: none; width: 16px; height: 16px; display: grid; place-items: center; color: var(--fg); }
+.lib-check svg { stroke: currentColor; stroke-width: 2.2; fill: none; }
+
+/* ---- 行右删除:文字按钮(宿主 .lib-rowacts 原样,悬停才现) ---- */
+.lib-rm { opacity: 0; transition: opacity .15s var(--ease), color .12s var(--ease); }
+.lib-row:hover .lib-rm, .lib-row:focus-within .lib-rm, .lib-rm:focus-visible { opacity: 1; }
+
+/* ---- 全局策略(破限卡片:模式段控;人设/替换词在 Library) ---- */
+.prefs #policy > .row { border-top: 1px solid var(--line-2); }
+.prefs #policy .val .segs { flex: none; }
+
+/* ---- 替换词 from → to ---- */
+.word-input { flex: 1 1 0; min-width: 40px; }
+.word-arrow { flex: none; color: var(--muted); font-size: 12px; }
+
+/* ---- 滚动条:宿主 .view 的同款 —— 透明轨道、--faint 细圆角 thumb(不挡内容),
+   Firefox 走 scrollbar-color。UA 默认那种白底宽条在深色下尤其突兀。 ---- */
+::-webkit-scrollbar { width: 8px; height: 8px; background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--faint);
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover { background-color: var(--muted); }
+::-webkit-scrollbar-corner { background: transparent; }
+
+.muted { color: var(--muted); }
+.flash { font-size: 12px; color: var(--accent); margin: 0 2px; }
+#saved { color: var(--accent); font-size: 12px; margin: 0; text-align: center; }
+
+/* ---- 草稿保存条:改动先进内存,点保存才写 options(宿主限频 1 次/秒) ---- */
+.lib-savebar {
+  position: sticky; bottom: 8px; z-index: 3; margin-top: 12px;
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 8px 7px 14px; border-radius: 11px;
+  background: var(--pop-bg); box-shadow: var(--shadow);
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  animation: lib-rise .22s var(--ease);
+}
+.lib-savebar .note { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--fg-2); }
+.lib-savebar .note::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--fg); }
+@keyframes lib-rise { from { opacity: 0; transform: translateY(8px); } }
+@media (prefers-reduced-motion: reduce) { .lib-savebar { animation: none; } }
+
+
+/* 接管条件的 −/数字/+ 步进控件 */
+.gate-step { display: flex; align-items: center; gap: 8px; }
+.gate-step .text { min-width: 26px; padding: 2px 6px; }
+.gate-num { font-size: 12px; color: var(--muted); min-width: 56px; text-align: center; }
+
+/* UA 的 hidden 是 display:none;class 规则优先级比它高,补回来 */
+[hidden] { display: none !important; }
+
+/* ---- Agents 列表的折叠区(宿主 app.css .agent-more / .agent-fold 逐字) ----
+   样式照抄宿主内部 GUI(app.css:650-664, 813-817):名单里的 agent 常驻,
+   名单外的折在一个按钮后面,展开时像一卷纸那样从上往下摊开。
+   宿主是窗口(居中)与面板(左对齐)两处,这里是插件页 —— 居中那套。 */
+.agent-more { display: flex; align-items: center; justify-content: center; gap: 5px; width: 100%; border: 0; border-top: 1px solid var(--line-2); background: none; font: inherit; font-size: 12px; color: var(--muted); padding: 9px; cursor: pointer; transition: color .2s, background-color .2s; }
+.agent-more:hover { color: var(--fg); background: var(--card-2); }
+.agent-more span { display: inline-flex; }
+.agent-more .chev { transition: transform .5s cubic-bezier(.22, 1, .36, 1); }
+.agent-more[aria-expanded="true"] .chev { transform: rotate(180deg); }
+/* the folded agents unroll like a scroll: the height opens on a long ease-out,
+   each row settles in a beat after the one above, and the unrolling edge is
+   soft while it moves. Rolling up is quicker, bottom row first. */
+.agent-fold { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .42s cubic-bezier(.4, 0, .2, 1); }
+.agent-fold.open { grid-template-rows: 1fr; transition-duration: .62s; transition-timing-function: cubic-bezier(.22, 1, .36, 1); }
+.agent-fold-inner { min-height: 0; overflow: hidden; }
+.agent-fold-inner > .row:first-child { border-top: 1px solid var(--line-2); }
+.agent-fold.moving .agent-fold-inner { -webkit-mask-image: linear-gradient(#000 calc(100% - 32px), transparent); mask-image: linear-gradient(#000 calc(100% - 32px), transparent); }
+/* 折起来的行自己会入场(上面 .lib-list .row 的 lib-in 让给折叠区) */
+.agent-fold .row { animation: none; opacity: 0; transform: translateY(-10px) scale(.985); transform-origin: 50% 0; transition: opacity .22s ease, transform .32s cubic-bezier(.4, 0, .2, 1); transition-delay: calc((var(--n) - 1 - var(--i)) * 22ms); }
+.agent-fold.open .row { opacity: 1; transform: none; transition: opacity .42s ease, transform .56s cubic-bezier(.22, 1, .36, 1); transition-delay: calc(70ms + var(--i) * 48ms); }
+/* 折起来的那组的名字(宿主 .agent-fold-cap) */
+.agent-fold-cap { padding: 8px 11px 2px; font-size: 11px; font-weight: 500; color: var(--muted); letter-spacing: .02em; border-top: 1px solid var(--line-2); }
+.agent-fold-cap + .row { border-top: 0; }
+.agent-fold .agent-fold-cap { opacity: 0; transition: opacity .22s ease; }
+.agent-fold.open .agent-fold-cap { opacity: 1; transition: opacity .42s ease; transition-delay: calc(70ms + var(--i) * 48ms); }
