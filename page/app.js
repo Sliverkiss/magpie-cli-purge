@@ -577,6 +577,13 @@
     } else {
       var i = a.indexOf(id)
       if (i >= 0) a.splice(i, 1)
+      // 空名单 = 全部放行(网关语义)。关掉最后一个不能落成 []:那等于把所有
+      // agent 重新打开,页面上还会全画成开。拒绝这次操作,并说清全关该用总闸。
+      if (!a.length) {
+        flash(t("An empty list allows every agent. To stop rewriting altogether, turn the main switch off."), "saved")
+        draw(["agents"])
+        return
+      }
     }
     var next = shallow(opts)
     next.agents = a
@@ -1011,7 +1018,10 @@
               flash(t("That persona is too large (max 256KB)."))
               return
             }
-            var base = String(p.name || f.name || "persona").replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "persona"
+            var base = String(p.name || f.name || "persona").replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "")
+            // 中文名会被上面整段压掉,落成 "persona"、"persona-2",排查时分不清是谁。
+            // id 只是个对象键,保留原名照样能用,只在真的空着时退回原名。
+            if (!base) base = String(p.name || f.name || "persona").trim().slice(0, 40) || "persona" || "persona"
             var id = base
             var n = 2
             while (library().personas[id]) id = base + "-" + n++

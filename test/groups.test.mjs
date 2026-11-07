@@ -24,11 +24,11 @@ test("老配置:库里没有这个键时,persona 当正文", () => {
   assert.equal(personaOf({ persona: "" }), "")
   assert.equal(personaOf({}), "")
   // 裸字符串这条老路同样受上限保护,不然每请求 trim 一个超大串
-  assert.equal(personaOf({ persona: "x".repeat(512 * 1024 + 1) }), "")
+  assert.equal(personaOf({ persona: "x".repeat(256 * 1024 + 1) }), "")
 })
 
 test("库里的人设正文超上限按空处理", () => {
-  const big = "x".repeat(512 * 1024 + 1)
+  const big = "x".repeat(256 * 1024 + 1)
   assert.equal(personaOf({ persona: "big", library: lib({ big: { body: big } }) }), "")
 })
 

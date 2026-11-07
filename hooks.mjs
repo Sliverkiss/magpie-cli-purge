@@ -98,5 +98,19 @@ export async function onRequest(body, ctx) {
     } catch {
       /* report 自己失败也不能影响放行 */
     }
+    // 静默放行也得留痕,不然线上只知道"没生效",不知道为什么
+    try {
+      if (ctx && ctx.state && typeof ctx.state === "object") {
+        ctx.state.purge = {
+          at: new Date().toISOString(),
+          agent: ctx.agent || "",
+          protocol: ctx.protocol || "",
+          mode: "error",
+          why: String(e && e.message ? e.message : e),
+        }
+      }
+    } catch {
+      /* 诊断写不进去也不能影响放行 */
+    }
   }
 }

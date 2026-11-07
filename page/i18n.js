@@ -21,6 +21,7 @@
       "Agents": "Agents",
       "Agents in the list are rewritten; the rest pass through untouched": "Agents in the list are rewritten; the rest pass through untouched",
       "Recognize this agent": "Recognize this agent",
+      "An empty list allows every agent. To stop rewriting altogether, turn the main switch off.": "An empty list allows every agent. To stop rewriting altogether, turn the main switch off.",
       // Agents 列表的折叠按钮:英文与中文都照宿主侧边栏(app.js 的 agent-more)
       // 逐字抄,连 {n} 的位置都一样。
       "Show {n} more": "Show {n} more",
@@ -78,6 +79,7 @@
       "Agents": "Agents",
       "Agents in the list are rewritten; the rest pass through untouched": "名单里的 agent 会被改写,其余原样放行",
       "Recognize this agent": "改写这个 agent",
+      "An empty list allows every agent. To stop rewriting altogether, turn the main switch off.": "名单不能是空的（空名单 = 全部放行）。要彻底停下改写，请关掉总闸。",
       "Show {n} more": "显示其余 {n} 个",
       "Show all {n} agents": "显示全部 {n} 个 Agent",
       "Show less": "收起",

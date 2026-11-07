@@ -68,11 +68,12 @@ test("chat 诊断:hostChars 把多段 system/developer 都算上", () => {
   assert.equal(systemTextOf(b, "chat"), "abc\n\ndef")
 })
 
-test("人设恰好是宿主提示词的前缀时,认成原生层已经改过,让开", () => {
+test("人设只是宿主提示词的前缀(差一个词)时不算改过,照常改写", () => {
+  // 旧判定是裸 startsWith(persona):宿主提示词恰好以人设开头就整段跳过,
+  // 人设静默失效。现在要求"人设 + 空行"或整段等于人设,才算原生层改过。
   const b = body(HOST)
   const p = plan(b, "chat", { mode: "append", persona: "You are an agent harness" }, ctx())
-  assert.equal(p.act, false)
-  assert.equal(p.already, true)
+  assert.equal(p.act, true)
 })
 
 test("没写模式时用默认那一档(和页面一致:append)", () => {
@@ -187,6 +188,87 @@ test("anthropic:system 是字符串时也能改", () => {
   assert.equal(b.system[0].text, PERSONA)
 })
 
+test("anthropic strict:messages 里那份宿主 system/developer 也要清掉,人设才压得住", () => {
+  // Claude Desktop / Code 会把宿主提示词同时发在 body.system 和 messages 里
+  const b = {
+    tools: [{}, {}, {}],
+    system: [{ type: "text", text: HOST }],
+    messages: [
+      { role: "system", content: "LATER HOST TEXT" },
+      { role: "developer", content: "MORE HOST TEXT" },
+      { role: "user", content: "hi" },
+    ],
+  }
+  rewrite(b, "anthropic", { mode: "strict", persona: PERSONA }, ctx({ cwd: "" }))
+  assert.equal(b.system[0].text, PERSONA)
+  assert.equal(b.messages.length, 1, "system/developer 消息该整段删掉")
+  assert.equal(b.messages[0].role, "user")
+  assert.ok(!JSON.stringify(b.messages).includes("HOST TEXT"))
+})
+
+test("anthropic strict + 人设为空:messages 里的宿主文本同样要清", () => {
+  // !text 分支也该清干净:strict 的语义是宿主文本整段丢掉,不是"有东西可加才丢"
+  const b = {
+    tools: [{}, {}, {}],
+    system: HOST,
+    messages: [
+      { role: "system", content: HOST },
+      { role: "user", content: "hi" },
+    ],
+  }
+  rewrite(b, "anthropic", { mode: "strict", persona: "" }, ctx({ cwd: "" }))
+  assert.equal(b.system, undefined)
+  assert.equal(b.messages.length, 1)
+  assert.equal(b.messages[0].role, "user")
+})
+
+test("anthropic append:messages 里认不出重复的那份原样保留", () => {
+  // 只有确认是同一份宿主文本才删;这份 SIDE 不在 body.system 里,不能丢
+  const b = {
+    tools: [{}, {}, {}],
+    system: HOST,
+    messages: [{ role: "system", content: "SIDE" }, { role: "user", content: "hi" }],
+  }
+  rewrite(b, "anthropic", { mode: "append", persona: PERSONA }, ctx())
+  assert.equal(b.messages.length, 2)
+  assert.equal(b.messages[0].role, "system")
+  assert.equal(b.messages[0].content, "SIDE")
+})
+
+test("anthropic append:messages 里那份重复的宿主文本只留一份", () => {
+  // 客户端把同一份宿主提示词同时发在 body.system 和 messages 里 —— 全量发两遍
+  const b = {
+    tools: [{}, {}, {}],
+    system: HOST,
+    messages: [
+      { role: "system", content: HOST },
+      { role: "user", content: "hi" },
+    ],
+  }
+  rewrite(b, "anthropic", { mode: "append", persona: PERSONA }, ctx())
+  assert.ok(b.system[0].text.startsWith(PERSONA))
+  assert.equal(b.messages.length, 1, "重复的那份该删掉")
+  assert.equal(b.messages[0].role, "user")
+  assert.equal(JSON.stringify(b).split("Available tools:").length - 1, 1, "宿主文本只出现一次")
+})
+
+test("responses append:input 里与 instructions 重复的 system/developer 只留一份", () => {
+  const b = {
+    tools: [{}, {}, {}],
+    instructions: HOST,
+    input: [
+      { type: "message", role: "developer", content: HOST },
+      { type: "message", role: "developer", content: "UNIQUE" },
+      { type: "message", role: "user", content: "hi" },
+    ],
+  }
+  rewrite(b, "responses", { mode: "append", persona: PERSONA }, ctx())
+  assert.ok(b.instructions.startsWith(PERSONA))
+  assert.equal(b.input.length, 2, "重复的删掉,唯一的那条留着")
+  assert.equal(b.input[0].content, "UNIQUE")
+  assert.equal(b.input[1].role, "user")
+})
+
 test("responses:改 instructions", () => {
   const b = { tools: [{}, {}, {}], instructions: HOST, input: [] }
   rewrite(b, "responses", { mode: "append", persona: PERSONA }, ctx())
@@ -288,6 +370,34 @@ test("gemini:systemInstruction 是裸 parts 数组时,宿主的 parts 不能丢"
   assert.equal(b.systemInstruction.parts.length, 2)
 })
 
+test("gemini:空的 systemInstruction 对象不挡住 system_instruction 的宿主文本", () => {
+  // 两种拼法都在时,空的那个不算数:它会把另一份宿主文本挡在读取和清除之外
+  const b = { tools: [{}, {}, {}], systemInstruction: {}, system_instruction: { parts: [{ text: HOST }] } }
+  assert.ok(systemTextOf(b, "gemini").includes("Available tools:"))
+  rewrite(b, "gemini", { mode: "strict", persona: PERSONA }, ctx({ cwd: "" }))
+  assert.equal(b.systemInstruction, undefined, "空的那个拼法该被清掉")
+  assert.equal(b.system_instruction.parts[0].text, PERSONA)
+})
+
+test("anthropic 诊断只看最前面那份判定「已改过」,不拿拼接串骗自己", () => {
+  // body.system 已经是人设 + 宿主时,原生层算改过了,让开
+  const done = {
+    tools: [{}, {}, {}],
+    system: [{ type: "text", text: `${PERSONA}\n\n${HOST}` }],
+    messages: [{ role: "user", content: "hi" }],
+  }
+  assert.equal(plan(done, "anthropic", { mode: "append", persona: PERSONA }, ctx()).already, true)
+
+  // messages 里还藏着宿主文本时,拼接出来的串看起来也像"人设 + 空行 + 宿主",
+  // 但那不是原生层改过的证据 —— 不许因此跳过
+  const pending = {
+    tools: [{}, {}, {}],
+    system: [{ type: "text", text: PERSONA }],
+    messages: [{ role: "system", content: HOST }, { role: "user", content: "hi" }],
+  }
+  assert.equal(plan(pending, "anthropic", { mode: "strict", persona: PERSONA }, ctx()).act, true)
+})
+
 test("systemTextOf 四种协议都读得出来", () => {
   assert.equal(systemTextOf({ system: "A" }, "anthropic"), "A")
   assert.equal(systemTextOf({ system: [{ type: "text", text: "A" }] }, "anthropic"), "A")
@@ -295,6 +405,16 @@ test("systemTextOf 四种协议都读得出来", () => {
   assert.equal(systemTextOf({ instructions: "C" }, "responses"), "C")
   assert.equal(systemTextOf({ systemInstruction: { parts: [{ text: "D" }] } }, "gemini"), "D")
   assert.equal(systemTextOf({ systemInstruction: [{ text: "E" }] }, "gemini"), "E")
+})
+
+test("anthropic 诊断:hostChars 也把 messages 里的宿主文本算上", () => {
+  // 只看 body.system 时诊断偏小,一份 55k 的宿主文本会整个不出现在 hostChars 里
+  const b = {
+    tools: [{}, {}, {}],
+    system: "TOP",
+    messages: [{ role: "system", content: "SIDE" }, { role: "user", content: "hi" }],
+  }
+  assert.equal(systemTextOf(b, "anthropic"), "TOP\n\nSIDE")
 })
 
 // ---- 决策 ----

@@ -257,6 +257,22 @@ test("空名单 = 全部放行:全画成开,关掉一个落成白名单(不是�
   assert.ok(bridge.written.agents.includes(ids[1]), "其余全部还在")
 })
 
+test("关掉最后一个 agent 不落空名单(空名单在网关 = 全部放行)", async () => {
+  // 名单只剩一家时关掉它,写 [] 会让网关把所有 agent 重新打开 —— 反语义
+  const { byId, bridge } = boot({ enabled: true, agents: ["claude"] })
+  await settle()
+  const sw = byId.get("agents").children[0].children[2]
+  assert.ok(sw.className.includes("on"), "唯一那家本来是开着的")
+  sw.onclick({})
+  await settle()
+
+  assert.ok(byId.get("agents").children[0].children[2].className.includes("on"), "开关该画回开")
+  assert.equal(byId.get("savebar").hidden, true, "没产生改动,保存条不该出现")
+  assert.equal(byId.get("saved").hidden, false, "该给出提示")
+  assert.match(byId.get("saved").textContent, /empty list allows every agent/i)
+  if (bridge.written) assert.deepEqual(bridge.written.agents, ["claude"])
+})
+
 test("门禁控件:加号改 minTools,开关改 skip,写盘带上新键", async () => {
   const { byId, bridge } = boot({ enabled: true })
   await settle()

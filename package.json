@@ -1,6 +1,6 @@
 {
   "name": "magpie-cli-purge",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Magpie gateway plugin that rewrites the system prompt of every agent request from your own persona; pi and omp also get an in-process extension. One switch, zero configuration",
   "type": "module",
   "files": [
