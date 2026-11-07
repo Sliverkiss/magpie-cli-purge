@@ -1,6 +1,6 @@
 <p align="center"><img src="icon.png" width="88" height="88" alt=""></p>
 
-# magpie-cli-purge · 破限
+# magpie-cli-purge
 
 [![license](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 [![author](https://img.shields.io/badge/author-Sliverkiss-8A2BE2)](https://github.com/Sliverkiss)
